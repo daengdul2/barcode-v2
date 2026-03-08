@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Barcode & QR Generator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;700&family=Space+Grotesk:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0d0d0d;
+    --surface: #141414;
+    --surface2: #1c1c1c;
+    --border: #2a2a2a;
+    --border2: #333;
+    --accent: #f5a623;
+    --accent2: #e8563a;
+    --text: #d4d4d4;
+    --text-dim: #666;
+    --text-bright: #f0f0f0;
+    --success: #4ecb71;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Space Grotesk', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--surface);
+  }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+  }
+
+  .logo-icon div {
+    background: var(--accent);
+    border-radius: 1px;
+  }
+
+  .logo-icon div:nth-child(2),
+  .logo-icon div:nth-child(4),
+  .logo-icon div:nth-child(6) {
+    background: transparent;
+    border: 1px solid var(--border2);
+  }
+
+  header h1 {
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--text-bright);
+    text-transform: uppercase;
+  }
+
+  header span {
+    color: var(--accent);
+  }
+
+  .version-badge {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 2px;
+    letter-spacing: 0.08em;
+  }
+
+  /* Layout */
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    min-height: calc(100vh - 62px);
+  }
+
+  /* Sidebar */
+  aside {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .tab-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    padding: 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-bottom: 2px solid transparent;
+  }
+
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: rgba(245,166,35,0.04);
+  }
+
+  .tab-btn:hover:not(.active) {
+    color: var(--text);
+    background: rgba(255,255,255,0.03);
+  }
+
+  .panel { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+  .field-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  textarea, input[type=text] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text-bright);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 12px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.15s;
+    resize: vertical;
+  }
+
+  textarea { min-height: 90px; }
+
+  textarea:focus, input[type=text]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(245,166,35,0.08);
+  }
+
+  select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text-bright);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 11px 12px;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+
+  select:focus { border-color: var(--accent); }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    background: var(--border2);
+    height: 3px;
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .slider-val {
+    font-size: 12px;
+    color: var(--accent);
+    min-width: 32px;
+    text-align: right;
+  }
+
+  .color-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  input[type=color] {
+    width: 40px; height: 34px;
+    border: 1px solid var(--border2);
+    background: var(--surface2);
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 2px;
+  }
+
+  .color-hex {
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+  }
+
+  /* Generate button */
+  .gen-btn {
+    width: 100%;
+    background: var(--accent);
+    border: none;
+    color: #000;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .gen-btn:hover { background: #ffc140; transform: translateY(-1px); }
+  .gen-btn:active { transform: translateY(0); }
+
+  .info-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    padding: 12px;
+    border-radius: 2px;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+
+  /* Canvas area */
+  .canvas-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+    position: relative;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 39px, var(--border) 39px, var(--border) 40px
+    ),
+    repeating-linear-gradient(
+      90deg, transparent, transparent 39px, var(--border) 39px, var(--border) 40px
+    );
+    background-size: 40px 40px;
+    background-color: var(--bg);
+  }
+
+  .canvas-wrapper {
+    background: #fff;
+    padding: 24px;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 24px 80px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: box-shadow 0.3s;
+  }
+
+  .canvas-wrapper.dark-bg {
+    background: #111;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 24px 80px rgba(0,0,0,0.7);
+  }
+
+  canvas { display: block; max-width: 100%; }
+
+  .placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    color: var(--text-dim);
+    font-size: 13px;
+    letter-spacing: 0.05em;
+  }
+
+  .placeholder-icon {
+    width: 80px; height: 80px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    opacity: 0.3;
+  }
+
+  .placeholder-icon div {
+    background: var(--text-dim);
+    border-radius: 2px;
+  }
+
+  .placeholder-icon div:nth-child(even) { opacity: 0.4; }
+
+  /* Actions below canvas */
+  .canvas-actions {
+    margin-top: 24px;
+    display: flex;
+    gap: 10px;
+  }
+
+  .action-btn {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 10px 18px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .action-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(245,166,35,0.05);
+  }
+
+  .action-btn svg { width: 14px; height: 14px; }
+
+  .status-bar {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 2px;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .status-bar.ok { color: var(--success); border-color: var(--success); }
+  .status-bar.err { color: var(--accent2); border-color: var(--accent2); }
+
+  /* Error message */
+  .error-msg {
+    color: var(--accent2);
+    font-size: 11px;
+    margin-top: 4px;
+    display: none;
+  }
+  .error-msg.show { display: block; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    main { grid-template-columns: 1fr; }
+    aside { border-right: none; border-bottom: 1px solid var(--border); }
+    .canvas-area { padding: 24px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-icon">
+    <div></div><div></div><div></div>
+    <div></div><div></div><div></div>
+    <div></div><div></div><div></div>
+  </div>
+  <h1>BAR<span>//</span>QR <span>GEN</span></h1>
+  <span class="version-badge">OFFLINE v1.0</span>
+</header>
+
+<main>
+  <aside>
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('qr')" id="tab-qr">▣ QR Code</button>
+      <button class="tab-btn" onclick="switchTab('bar')" id="tab-bar">▥ Barcode</button>
+    </div>
+
+    <!-- QR Panel -->
+    <div class="panel" id="panel-qr">
+      <div>
+        <label class="field-label">Data / Teks</label>
+        <textarea id="qr-text" placeholder="Masukkan URL, teks, atau data..." oninput="clearStatus()">https://example.com</textarea>
+        <div class="error-msg" id="qr-error"></div>
+      </div>
+      <div class="row2">
+        <div>
+          <label class="field-label">Level Koreksi</label>
+          <select id="qr-ecl">
+            <option value="L">L — Low (7%)</option>
+            <option value="M" selected>M — Medium (15%)</option>
+            <option value="Q">Q — Quartile (25%)</option>
+            <option value="H">H — High (30%)</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Ukuran Modul</label>
+          <div class="slider-row">
+            <input type="range" id="qr-size" min="4" max="16" value="8" oninput="document.getElementById('qr-size-val').textContent=this.value+'px'">
+            <span class="slider-val" id="qr-size-val">8px</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label class="field-label">Warna Gelap</label>
+        <div class="color-row">
+          <input type="color" id="qr-fg" value="#000000" oninput="document.getElementById('qr-fg-hex').textContent=this.value">
+          <span class="color-hex" id="qr-fg-hex">#000000</span>
+        </div>
+      </div>
+      <div>
+        <label class="field-label">Warna Terang</label>
+        <div class="color-row">
+          <input type="color" id="qr-bg" value="#ffffff" oninput="document.getElementById('qr-bg-hex').textContent=this.value">
+          <span class="color-hex" id="qr-bg-hex">#ffffff</span>
+        </div>
+      </div>
+      <div>
+        <label class="field-label">Margin (quiet zone)</label>
+        <div class="slider-row">
+          <input type="range" id="qr-margin" min="0" max="8" value="4" oninput="document.getElementById('qr-margin-val').textContent=this.value">
+          <span class="slider-val" id="qr-margin-val">4</span>
+        </div>
+      </div>
+      <button class="gen-btn" onclick="generateQR()">⬡ Generate QR Code</button>
+      <div class="info-box">
+        Mendukung teks, URL, email, nomor telepon, WiFi, vCard, dan data lainnya. Bekerja 100% offline tanpa internet.
+      </div>
+    </div>
+
+    <!-- Barcode Panel -->
+    <div class="panel" id="panel-bar" style="display:none">
+      <div>
+        <label class="field-label">Data Barcode</label>
+        <input type="text" id="bar-text" placeholder="Masukkan data..." value="1234567890" oninput="clearStatus()">
+        <div class="error-msg" id="bar-error"></div>
+      </div>
+      <div>
+        <label class="field-label">Format Barcode</label>
+        <select id="bar-format" onchange="updateBarInfo()">
+          <option value="CODE39">Code 39</option>
+          <option value="CODE128">Code 128</option>
+          <option value="EAN13">EAN-13</option>
+          <option value="EAN8">EAN-8</option>
+          <option value="UPCA">UPC-A</option>
+        </select>
+      </div>
+      <div class="row2">
+        <div>
+          <label class="field-label">Tinggi (px)</label>
+          <div class="slider-row">
+            <input type="range" id="bar-height" min="40" max="200" value="80" oninput="document.getElementById('bar-h-val').textContent=this.value">
+            <span class="slider-val" id="bar-h-val">80</span>
+          </div>
+        </div>
+        <div>
+          <label class="field-label">Lebar Bar</label>
+          <div class="slider-row">
+            <input type="range" id="bar-width" min="1" max="4" value="2" step="0.5" oninput="document.getElementById('bar-w-val').textContent=this.value+'px'">
+            <span class="slider-val" id="bar-w-val">2px</span>
+          </div>
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label class="field-label">Warna Bar</label>
+          <div class="color-row">
+            <input type="color" id="bar-fg" value="#000000" oninput="document.getElementById('bar-fg-hex').textContent=this.value">
+            <span class="color-hex" id="bar-fg-hex">#000000</span>
+          </div>
+        </div>
+        <div>
+          <label class="field-label">Background</label>
+          <div class="color-row">
+            <input type="color" id="bar-bg" value="#ffffff" oninput="document.getElementById('bar-bg-hex').textContent=this.value">
+            <span class="color-hex" id="bar-bg-hex">#ffffff</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label class="field-label">Tampilkan Teks</label>
+        <select id="bar-showtext">
+          <option value="1">Ya - Tampilkan</option>
+          <option value="0">Tidak</option>
+        </select>
+      </div>
+      <button class="gen-btn" onclick="generateBarcode()">⬡ Generate Barcode</button>
+      <div class="info-box" id="bar-info">
+        Code 39: Huruf besar A–Z, angka 0–9, dan karakter khusus - . $ / + % SPACE.
+      </div>
+    </div>
+  </aside>
+
+  <section class="canvas-area" id="canvas-area">
+    <div id="placeholder" class="placeholder">
+      <div class="placeholder-icon">
+        <div></div><div></div><div></div><div></div>
+        <div></div><div></div><div></div><div></div>
+        <div></div><div></div><div></div><div></div>
+        <div></div><div></div><div></div><div></div>
+      </div>
+      <div>Tekan tombol Generate untuk memulai</div>
+      <div style="font-size:11px; color:var(--text-dim)">↖ Atur parameter di panel kiri</div>
+    </div>
+
+    <div id="output-wrapper" style="display:none; flex-direction:column; align-items:center">
+      <div class="canvas-wrapper" id="canvas-wrapper">
+        <canvas id="main-canvas"></canvas>
+      </div>
+      <div class="canvas-actions">
+        <button class="action-btn" onclick="downloadPNG()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8m0 0l-3-3m3 3l3-3M2 12v2h12v-2"/></svg>
+          PNG
+        </button>
+        <button class="action-btn" onclick="downloadSVG()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8m0 0l-3-3m3 3l3-3M2 12v2h12v-2"/></svg>
+          SVG
+        </button>
+        <button class="action-btn" onclick="copyToClipboard()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="5" width="9" height="9" rx="1"/><path d="M4 11H3a1 1 0 01-1-1V3a1 1 0 011-1h7a1 1 0 011 1v1"/></svg>
+          Salin
+        </button>
+      </div>
+    </div>
+
+    <div class="status-bar" id="status-bar" style="display:none"></div>
+  </section>
+</main>
+
+<script>
+// ============================================================
+// QR CODE GENERATOR (Full ISO 18004 Implementation)
+// ============================================================
+const QRGen = (() => {
+  // GF(256) field with primitive polynomial 285
+  const GF_EXP = new Uint8Array(512);
+  const GF_LOG = new Uint8Array(256);
+  let gfInit = false;
+
+  function initGF() {
+    if (gfInit) return;
+    let x = 1;
+    for (let i = 0; i < 255; i++) {
+      GF_EXP[i] = x;
+      GF_LOG[x] = i;
+      x <<= 1;
+      if (x & 256) x ^= 285;
+    }
+    for (let i = 255; i < 512; i++) GF_EXP[i] = GF_EXP[i - 255];
+    gfInit = true;
+  }
+
+  const gfMul = (a, b) => (a && b) ? GF_EXP[GF_LOG[a] + GF_LOG[b]] : 0;
+
+  function makeGenPoly(degree) {
+    let poly = [1];
+    for (let i = 0; i < degree; i++) {
+      const nxt = new Array(poly.length + 1).fill(0);
+      for (let j = 0; j < poly.length; j++) {
+        nxt[j] ^= poly[j];
+        nxt[j + 1] ^= gfMul(poly[j], GF_EXP[i]);
+      }
+      poly = nxt;
+    }
+    return poly;
+  }
+
+  function computeRS(data, ecCount) {
+    const gen = makeGenPoly(ecCount);
+    const msg = [...data, ...new Array(ecCount).fill(0)];
+    for (let i = 0; i < data.length; i++) {
+      const c = msg[i];
+      if (c) for (let j = 0; j < gen.length; j++) msg[i + j] ^= gfMul(gen[j], c);
+    }
+    return msg.slice(data.length);
+  }
+
+  // Version tables for each ECL: [dataCW, [[numBlocks, blockDataCW, blockECCW],...]]
+  const VERSION_DATA = {
+    L: [
+      null,
+      [19,[[1,19,7]]],[34,[[1,34,10]]],[55,[[1,55,15]]],[80,[[1,80,20]]],
+      [108,[[1,108,26]]],[136,[[2,68,18]]],[156,[[2,78,20]]],[194,[[2,97,24]]],
+      [232,[[2,116,30]]],[274,[[2,68,18],[2,69,18]]]
+    ],
+    M: [
+      null,
+      [16,[[1,16,10]]],[28,[[1,28,16]]],[44,[[1,44,26]]],[64,[[2,32,18]]],
+      [86,[[2,43,24]]],[108,[[4,27,16]]],[124,[[4,31,18]]],
+      [154,[[2,38,22],[2,39,22]]],[182,[[3,36,20],[2,37,20]]],
+      [216,[[4,43,24],[1,44,24]]]
+    ],
+    Q: [
+      null,
+      [13,[[1,13,13]]],[22,[[1,22,22]]],[34,[[2,17,18]]],[48,[[2,24,26]]],
+      [62,[[2,15,18],[2,16,18]]],[76,[[4,19,24]]],[88,[[2,14,18],[4,15,18]]],
+      [110,[[4,18,22],[2,19,22]]],[132,[[4,16,20],[4,17,20]]],
+      [154,[[6,19,24],[2,20,24]]]
+    ],
+    H: [
+      null,
+      [9,[[1,9,17]]],[16,[[1,16,28]]],[26,[[2,13,22]]],[36,[[4,9,16]]],
+      [46,[[2,11,22],[2,12,22]]],[60,[[4,15,28]]],[66,[[4,13,26],[1,14,26]]],
+      [86,[[4,14,26],[2,15,26]]],[100,[[4,12,24],[4,13,24]]],
+      [122,[[6,15,28],[2,16,28]]]
+    ]
+  };
+
+  const ALIGN_POS = [
+    [], [], [6,18], [6,22], [6,26], [6,30], [6,34],
+    [6,22,38], [6,24,42], [6,26,46], [6,28,50]
+  ];
+
+  // ECL codes: L=01, M=00, Q=11, H=10
+  const ECL_BITS = { L: 0b01, M: 0b00, Q: 0b11, H: 0b10 };
+
+  function selectVersion(byteLen, ecl) {
+    const tbl = VERSION_DATA[ecl];
+    for (let v = 1; v <= 10; v++) {
+      const dataCW = tbl[v][0];
+      // Byte mode: 4 bits mode + 8 bits length = 12 bits overhead
+      const avail = Math.floor((dataCW * 8 - 12) / 8);
+      if (avail >= byteLen) return v;
+    }
+    throw new Error('Data terlalu panjang (max ~' + Math.floor((VERSION_DATA[ecl][10][0] * 8 - 12)/8) + ' byte untuk ECL ' + ecl + ')');
+  }
+
+  function makeBitstream(bytes, version, ecl) {
+    const bits = [];
+    const push = (val, len) => { for (let i = len-1; i >= 0; i--) bits.push((val >> i) & 1); };
+    push(4, 4);           // byte mode
+    push(bytes.length, 8); // length (8 bits for v1-9)
+    for (const b of bytes) push(b, 8);
+
+    const dataCW = VERSION_DATA[ecl][version][0];
+    const cap = dataCW * 8;
+    for (let i = 0; i < 4 && bits.length < cap; i++) bits.push(0); // terminator
+    while (bits.length % 8) bits.push(0); // byte align
+    const pads = [0xEC, 0x11];
+    let pi = 0;
+    while (bits.length < cap) push(pads[pi++ % 2], 8);
+    return bits;
+  }
+
+  function bitsToBytes(bits) {
+    const out = [];
+    for (let i = 0; i < bits.length; i += 8) {
+      let b = 0;
+      for (let j = 0; j < 8; j++) b = (b << 1) | bits[i + j];
+      out.push(b);
+    }
+    return out;
+  }
+
+  function buildCodewords(version, ecl, dataBytes) {
+    const blockDefs = VERSION_DATA[ecl][version][1];
+    const dataBlocks = [], ecBlocks = [];
+    let off = 0;
+    for (const [cnt, sz, ecSz] of blockDefs) {
+      for (let i = 0; i < cnt; i++) {
+        const blk = dataBytes.slice(off, off + sz);
+        dataBlocks.push(blk);
+        ecBlocks.push(computeRS(blk, ecSz));
+        off += sz;
+      }
+    }
+    const result = [];
+    const maxD = Math.max(...dataBlocks.map(b => b.length));
+    for (let i = 0; i < maxD; i++) for (const b of dataBlocks) if (i < b.length) result.push(b[i]);
+    const maxE = Math.max(...ecBlocks.map(b => b.length));
+    for (let i = 0; i < maxE; i++) for (const b of ecBlocks) if (i < b.length) result.push(b[i]);
+    return result;
+  }
+
+  // Matrix helpers
+  function newMatrix(size) {
+    return {
+      size,
+      m: Array.from({length: size}, () => new Int8Array(size).fill(-1)),
+      fn: Array.from({length: size}, () => new Uint8Array(size))
+    };
+  }
+
+  function setF(mat, r, c, v) {
+    if (r < 0 || r >= mat.size || c < 0 || c >= mat.size) return;
+    mat.m[r][c] = v;
+    mat.fn[r][c] = 1;
+  }
+
+  function placeFinderPattern(mat, r, c) {
+    for (let dr = -1; dr <= 7; dr++) {
+      for (let dc = -1; dc <= 7; dc++) {
+        const row = r + dr, col = c + dc;
+        if (row < 0 || row >= mat.size || col < 0 || col >= mat.size) continue;
+        if (dr < 0 || dr > 6 || dc < 0 || dc > 6) {
+          setF(mat, row, col, 0); // separator
+        } else {
+          const v = (dr === 0 || dr === 6 || dc === 0 || dc === 6 ||
+                     (dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4)) ? 1 : 0;
+          setF(mat, row, col, v);
+        }
+      }
+    }
+  }
+
+  function placeAlignmentPattern(mat, r, c) {
+    for (let dr = -2; dr <= 2; dr++) {
+      for (let dc = -2; dc <= 2; dc++) {
+        const v = (Math.abs(dr) === 2 || Math.abs(dc) === 2 || (dr === 0 && dc === 0)) ? 1 : 0;
+        setF(mat, r + dr, c + dc, v);
+      }
+    }
+  }
+
+  function placeFormatInfo(mat, ecl, mask) {
+    const eclBit = ECL_BITS[ecl];
+    const data5 = (eclBit << 3) | mask;
+    let bch = data5 << 10;
+    const gen = 0x537;
+    for (let i = 14; i >= 10; i--) {
+      if (bch & (1 << i)) bch ^= gen << (i - 10);
+    }
+    const fmt = ((data5 << 10) | bch) ^ 0x5412;
+    const sz = mat.size;
+
+    // Top-left horizontal (row 8, cols 0-8 skipping 6)
+    const hCols = [0,1,2,3,4,5,7,8];
+    for (let i = 0; i < 8; i++) setF(mat, 8, hCols[i], (fmt >> (14 - i)) & 1);
+    // Top-left vertical (col 8, rows 0-8 skipping 6)
+    const vRows = [8,7,5,4,3,2,1,0];
+    for (let i = 0; i < 8; i++) setF(mat, vRows[i], 8, (fmt >> i) & 1);
+    // Top-right (row 8, cols size-8 to size-1)
+    for (let i = 0; i < 8; i++) setF(mat, 8, sz - 1 - i, (fmt >> i) & 1);
+    // Bottom-left (col 8, rows size-7 to size-1)
+    for (let i = 0; i < 7; i++) setF(mat, sz - 7 + i, 8, (fmt >> (8 + i)) & 1);
+    // Dark module
+    setF(mat, sz - 8, 8, 1);
+  }
+
+  function placeData(mat, codewords) {
+    const sz = mat.size;
+    const bits = [];
+    for (const cw of codewords) for (let b = 7; b >= 0; b--) bits.push((cw >> b) & 1);
+    let bi = 0;
+    let up = true;
+    for (let right = sz - 1; right >= 1; right -= 2) {
+      if (right === 6) right = 5;
+      for (let vert = 0; vert < sz; vert++) {
+        const row = up ? sz - 1 - vert : vert;
+        for (let dc = 0; dc <= 1; dc++) {
+          const col = right - dc;
+          if (!mat.fn[row][col]) {
+            mat.m[row][col] = bi < bits.length ? bits[bi++] : 0;
+          }
+        }
+      }
+      up = !up;
+    }
+  }
+
+  const MASK_FNS = [
+    (r,c) => (r + c) % 2 === 0,
+    (r,c) => r % 2 === 0,
+    (r,c) => c % 3 === 0,
+    (r,c) => (r + c) % 3 === 0,
+    (r,c) => (Math.floor(r/2) + Math.floor(c/3)) % 2 === 0,
+    (r,c) => (r*c) % 2 + (r*c) % 3 === 0,
+    (r,c) => ((r*c)%2 + (r*c)%3) % 2 === 0,
+    (r,c) => ((r+c)%2 + (r*c)%3) % 2 === 0,
+  ];
+
+  function applyMask(mat, mask) {
+    const sz = mat.size;
+    const copy = newMatrix(sz);
+    for (let r = 0; r < sz; r++) {
+      for (let c = 0; c < sz; c++) {
+        copy.m[r][c] = mat.m[r][c];
+        copy.fn[r][c] = mat.fn[r][c];
+        if (!mat.fn[r][c] && MASK_FNS[mask](r, c)) copy.m[r][c] ^= 1;
+      }
+    }
+    return copy;
+  }
+
+  function penalty(mat) {
+    const sz = mat.size, m = mat.m;
+    let s = 0;
+    // Rule 1
+    for (let r = 0; r < sz; r++) {
+      for (let c = 0, run = 1; c < sz; c++) {
+        if (c && m[r][c] === m[r][c-1]) { run++; if (run === 5) s += 3; else if (run > 5) s++; }
+        else run = 1;
+      }
+      for (let c = 0, run = 1; c < sz; c++) {
+        // vertical handled below
+      }
+    }
+    for (let c = 0; c < sz; c++) {
+      for (let r = 1, run = 1; r < sz; r++) {
+        if (m[r][c] === m[r-1][c]) { run++; if (run === 5) s += 3; else if (run > 5) s++; }
+        else run = 1;
+      }
+    }
+    // Rule 2
+    for (let r = 0; r < sz-1; r++) for (let c = 0; c < sz-1; c++) {
+      const v = m[r][c];
+      if (v === m[r][c+1] && v === m[r+1][c] && v === m[r+1][c+1]) s += 3;
+    }
+    // Rule 3
+    const p1 = [1,0,1,1,1,0,1,0,0,0,0], p2 = [0,0,0,0,1,0,1,1,1,0,1];
+    for (let r = 0; r < sz; r++) for (let c = 0; c <= sz-11; c++) {
+      let a = true, b = true;
+      for (let k = 0; k < 11; k++) { if (m[r][c+k] !== p1[k]) a = false; if (m[r][c+k] !== p2[k]) b = false; }
+      if (a || b) s += 40;
+    }
+    for (let c = 0; c < sz; c++) for (let r = 0; r <= sz-11; r++) {
+      let a = true, b = true;
+      for (let k = 0; k < 11; k++) { if (m[r+k][c] !== p1[k]) a = false; if (m[r+k][c] !== p2[k]) b = false; }
+      if (a || b) s += 40;
+    }
+    // Rule 4
+    let dark = 0;
+    for (let r = 0; r < sz; r++) for (let c = 0; c < sz; c++) dark += m[r][c];
+    const pct = dark * 100 / (sz * sz);
+    s += Math.min(Math.abs(Math.floor(pct/5)*5 - 50), Math.abs(Math.ceil(pct/5)*5 - 50)) * 2;
+    return s;
+  }
+
+  function generate(text, ecl = 'M') {
+    initGF();
+    const bytes = Array.from(new TextEncoder().encode(text));
+    if (bytes.length === 0) throw new Error('Teks tidak boleh kosong');
+    const version = selectVersion(bytes.length, ecl);
+    const sz = version * 4 + 17;
+
+    // Build base matrix with function patterns
+    const base = newMatrix(sz);
+    placeFinderPattern(base, 0, 0);
+    placeFinderPattern(base, 0, sz - 7);
+    placeFinderPattern(base, sz - 7, 0);
+
+    // Timing patterns
+    for (let i = 8; i < sz - 8; i++) {
+      setF(base, 6, i, i % 2 === 0 ? 1 : 0);
+      setF(base, i, 6, i % 2 === 0 ? 1 : 0);
+    }
+
+    // Alignment patterns
+    const ap = ALIGN_POS[version];
+    for (const r of ap) for (const c of ap) {
+      if (!base.fn[r][c]) placeAlignmentPattern(base, r, c);
+    }
+
+    // Encode data
+    const bits = makeBitstream(bytes, version, ecl);
+    const dataBytes = bitsToBytes(bits);
+    const codewords = buildCodewords(version, ecl, dataBytes);
+
+    // Place data
+    placeData(base, codewords);
+
+    // Find best mask
+    let bestMask = 0, bestScore = Infinity;
+    for (let mask = 0; mask < 8; mask++) {
+      const m = applyMask(base, mask);
+      placeFormatInfo(m, ecl, mask);
+      const sc = penalty(m);
+      if (sc < bestScore) { bestScore = sc; bestMask = mask; }
+    }
+
+    const final = applyMask(base, bestMask);
+    placeFormatInfo(final, ecl, bestMask);
+
+    return { matrix: final.m, size: sz, version };
+  }
+
+  return { generate };
+})();
+
+// ============================================================
+// BARCODE GENERATORS
+// ============================================================
+const BarcodeGen = (() => {
+
+  // --- CODE 39 ---
+  const C39_CHARS = {
+    '0':'000110100','1':'100100001','2':'001100001','3':'101100000',
+    '4':'000110001','5':'100110000','6':'001110000','7':'000100101',
+    '8':'100100100','9':'001100100','A':'100001001','B':'001001001',
+    'C':'101001000','D':'000011001','E':'100011000','F':'001011000',
+    'G':'000001101','H':'100001100','I':'001001100','J':'000011100',
+    'K':'100000011','L':'001000011','M':'101000010','N':'000010011',
+    'O':'100010010','P':'001010010','Q':'000000111','R':'100000110',
+    'S':'001000110','T':'000010110','U':'110000001','V':'011000001',
+    'W':'111000000','X':'010010001','Y':'110010000','Z':'011010000',
+    '-':'010000101','.':'110000100',' ':'011000100','*':'010010100',
+    '$':'010101000','/':'010100010','+':'010001010','%':'000101010'
+  };
+
+  function code39(text) {
+    const t = text.toUpperCase();
+    for (const ch of t) if (!C39_CHARS[ch]) throw new Error(`Karakter '${ch}' tidak valid untuk Code 39`);
+    const bars = [];
+    const enc = '*' + t + '*';
+    for (let i = 0; i < enc.length; i++) {
+      if (i > 0) bars.push({w:1, dark:false}); // interchar gap
+      const p = C39_CHARS[enc[i]];
+      for (let j = 0; j < 9; j++) {
+        bars.push({w: p[j]==='1'?3:1, dark: j%2===0});
+      }
+    }
+    return bars;
+  }
+
+  // --- CODE 128 ---
+  const C128_VALUES = (() => {
+    const t = [];
+    // Code B values 0-95 = space to ~
+    for (let i = 32; i <= 126; i++) t.push(String.fromCharCode(i));
+    return t;
+  })();
+
+  const C128_PATTERNS = [
+    '11011001100','11001101100','11001100110','10010011000','10010001100',
+    '10001001100','10011001000','10011000100','10001100100','11001001000',
+    '11001000100','11000100100','10110011100','10011011100','10011001110',
+    '10111001100','10011101100','10011100110','11001110010','11001011100',
+    '11001001110','11011100100','11001110100','11101101110','11101001100',
+    '11100101100','11100100110','11101100100','11100110100','11100110010',
+    '11011011000','11011000110','11000110110','10100011000','10001011000',
+    '10001000110','10110001000','10001101000','10001100010','11010001000',
+    '11000101000','11000100010','10110111000','10110001110','10001101110',
+    '10111011000','10111000110','10001110110','11101110110','11010001110',
+    '11000101110','11011101000','11011100010','11011101110','11101011000',
+    '11101000110','11100010110','11101101000','11101100010','11100011010',
+    '11101111010','11001000010','11110001010','10100110000','10100001100',
+    '10010110000','10010000110','10000101100','10000100110','10110010000',
+    '10110000100','10011010000','10011000010','10000110100','10000110010',
+    '11000010010','11001010000','11110111010','11000010100','10001111010',
+    '10100111100','10010111100','10010011110','10111100100','10011110100',
+    '10011110010','11110100100','11110010100','11110010010','11011011110',
+    '11011110110','11110110110','10101111000','10100011110','10001011110',
+    '10111101000','10111100010','11110101000','11110100010','10111011110',
+    '10111101110','11101011110','11110101110','11010000100','11010010000',
+    '11010011100','11000111010'
+  ];
+  // Start B = 104, Stop = 106
+  const C128_START_B = 104;
+  const C128_STOP = 106;
+
+  function code128(text) {
+    for (const ch of text) {
+      if (ch.charCodeAt(0) < 32 || ch.charCodeAt(0) > 126)
+        throw new Error(`Karakter '${ch}' tidak valid untuk Code 128 (gunakan ASCII 32-126)`);
+    }
+    const vals = [C128_START_B];
+    let checksum = C128_START_B;
+    for (let i = 0; i < text.length; i++) {
+      const v = text.charCodeAt(i) - 32;
+      vals.push(v);
+      checksum += v * (i + 1);
+    }
+    vals.push(checksum % 103);
+    vals.push(C128_STOP);
+
+    const bars = [];
+    function addPattern(idx) {
+      const p = C128_PATTERNS[idx];
+      for (let i = 0; i < p.length; i++) {
+        const w = parseInt(p[i]);
+        bars.push({w, dark: i%2===0});
+      }
+    }
+    for (const v of vals) addPattern(v);
+    bars.push({w:2, dark:false}); // termination bar
+    bars.push({w:1, dark:true});
+    return bars;
+  }
+
+  // --- EAN/UPC ---
+  function calcEAN13Check(digits) {
+    let s = 0;
+    for (let i = 0; i < 12; i++) s += digits[i] * (i%2===0?1:3);
+    return (10 - s%10) % 10;
+  }
+
+  function calcEAN8Check(digits) {
+    let s = 0;
+    for (let i = 0; i < 7; i++) s += digits[i] * (i%2===0?3:1);
+    return (10 - s%10) % 10;
+  }
+
+  // L-code, G-code, R-code patterns
+  const L_CODE = ['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'];
+  const G_CODE = ['0100111','0110011','0011011','0100001','0011101','0111001','0000101','0010001','0001001','0010111'];
+  const R_CODE = ['1110010','1100110','1101100','1000010','1011100','1001110','1010000','1000100','1001000','1110100'];
+
+  // First digit parity patterns for EAN-13
+  const EAN13_PARITY = [
+    'LLLLLL','LLGLGG','LLGGLG','LLGGGL','LGLLGG','LGGLLG','LGGGLL','LGLGLG','LGLGGL','LGGLGL'
+  ];
+
+  function ean13(text) {
+    const digits = text.replace(/\D/g,'').split('').map(Number);
+    if (digits.length < 12 || digits.length > 13) throw new Error('EAN-13 membutuhkan 12 atau 13 digit');
+    if (digits.length === 12) digits.push(calcEAN13Check(digits));
+    else if (digits[12] !== calcEAN13Check(digits)) throw new Error('Check digit EAN-13 tidak valid (digit ke-13 tidak cocok)');
+
+    const bars = [];
+    const addEncoding = (enc) => {
+      for (const ch of enc) {
+        const w = parseInt(ch);
+        const dark = ch !== '0';
+        bars.push({w:1, dark});
+      }
+    };
+
+    addEncoding('101'); // start
+    const parity = EAN13_PARITY[digits[0]];
+    for (let i = 1; i <= 6; i++) {
+      addEncoding(parity[i-1] === 'L' ? L_CODE[digits[i]] : G_CODE[digits[i]]);
+    }
+    addEncoding('01010'); // center guard
+    for (let i = 7; i <= 12; i++) addEncoding(R_CODE[digits[i]]);
+    addEncoding('101'); // end
+
+    return { bars, text: digits.join(''), showDigit: digits[0] };
+  }
+
+  function ean8(text) {
+    const digits = text.replace(/\D/g,'').split('').map(Number);
+    if (digits.length < 7 || digits.length > 8) throw new Error('EAN-8 membutuhkan 7 atau 8 digit');
+    if (digits.length === 7) digits.push(calcEAN8Check(digits));
+    else if (digits[7] !== calcEAN8Check(digits)) throw new Error('Check digit EAN-8 tidak valid');
+
+    const bars = [];
+    const addEncoding = (enc) => {
+      for (const ch of enc) bars.push({w:1, dark: ch!=='0'});
+    };
+    addEncoding('101');
+    for (let i = 0; i < 4; i++) addEncoding(L_CODE[digits[i]]);
+    addEncoding('01010');
+    for (let i = 4; i < 8; i++) addEncoding(R_CODE[digits[i]]);
+    addEncoding('101');
+    return { bars, text: digits.join('') };
+  }
+
+  function upca(text) {
+    const digits = text.replace(/\D/g,'').split('').map(Number);
+    if (digits.length < 11 || digits.length > 12) throw new Error('UPC-A membutuhkan 11 atau 12 digit');
+    // UPC-A = EAN-13 with leading 0
+    const ean = [0, ...digits.slice(0,11)];
+    const check = calcEAN13Check(ean);
+    if (digits.length === 12 && digits[11] !== check) throw new Error('Check digit UPC-A tidak valid');
+    ean.push(check);
+
+    const result = ean13(ean.join(''));
+    result.text = ean.slice(1).join('');
+    return result;
+  }
+
+  return { code39, code128, ean13, ean8, upca };
+})();
+
+// ============================================================
+// RENDERING
+// ============================================================
+let lastSVGData = null;
+let lastMode = null;
+
+function renderQR(matrix, sz, opts) {
+  const { fgColor, bgColor, moduleSize, margin } = opts;
+  const totalSz = (sz + margin * 2) * moduleSize;
+  const canvas = document.getElementById('main-canvas');
+  canvas.width = totalSz;
+  canvas.height = totalSz;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, totalSz, totalSz);
+
+  // SVG generation
+  let svgRects = '';
+  const offset = margin * moduleSize;
+
+  ctx.fillStyle = fgColor;
+  for (let r = 0; r < sz; r++) {
+    for (let c = 0; c < sz; c++) {
+      if (matrix[r][c]) {
+        const x = offset + c * moduleSize;
+        const y = offset + r * moduleSize;
+        ctx.fillRect(x, y, moduleSize, moduleSize);
+        svgRects += `<rect x="${x}" y="${y}" width="${moduleSize}" height="${moduleSize}"/>`;
+      }
+    }
+  }
+
+  lastSVGData = `<svg xmlns="http://www.w3.org/2000/svg" width="${totalSz}" height="${totalSz}" viewBox="0 0 ${totalSz} ${totalSz}"><rect width="${totalSz}" height="${totalSz}" fill="${bgColor}"/><g fill="${fgColor}">${svgRects}</g></svg>`;
+
+  // Adjust canvas wrapper bg
+  const wrapper = document.getElementById('canvas-wrapper');
+  wrapper.style.background = bgColor;
+  wrapper.className = 'canvas-wrapper ' + (isLight(bgColor) ? '' : 'dark-bg');
+}
+
+function renderBarcode(bars, opts, labelText) {
+  const { fgColor, bgColor, barWidth, barHeight, showText } = opts;
+  const canvas = document.getElementById('main-canvas');
+
+  // Calculate total width
+  const totalBars = bars.reduce((a, b) => a + b.w * barWidth, 0);
+  const padX = 20, padY = showText ? 20 : 12;
+  const textH = showText ? 20 : 0;
+  const W = totalBars + padX * 2;
+  const H = barHeight + padY * 2 + textH;
+
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, W, H);
+
+  // Draw bars
+  let x = padX;
+  let svgBars = '';
+  ctx.fillStyle = fgColor;
+  for (const { w, dark } of bars) {
+    const bw = w * barWidth;
+    if (dark) {
+      ctx.fillRect(x, padY, bw, barHeight);
+      svgBars += `<rect x="${x}" y="${padY}" width="${bw}" height="${barHeight}" fill="${fgColor}"/>`;
+    }
+    x += bw;
+  }
+
+  // Draw text
+  if (showText && labelText) {
+    ctx.fillStyle = fgColor;
+    ctx.font = `12px "IBM Plex Mono", monospace`;
+    ctx.textAlign = 'center';
+    ctx.fillText(labelText, W / 2, padY + barHeight + 16);
+  }
+
+  lastSVGData = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="${bgColor}"/>${svgBars}${showText && labelText ? `<text x="${W/2}" y="${padY + barHeight + 16}" fill="${fgColor}" font-family="monospace" font-size="12" text-anchor="middle">${labelText}</text>` : ''}</svg>`;
+
+  const wrapper = document.getElementById('canvas-wrapper');
+  wrapper.style.background = bgColor;
+  wrapper.className = 'canvas-wrapper ' + (isLight(bgColor) ? '' : 'dark-bg');
+}
+
+function isLight(hex) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return (r*299 + g*587 + b*114) / 1000 > 128;
+}
+
+// ============================================================
+// UI LOGIC
+// ============================================================
+function switchTab(tab) {
+  document.getElementById('panel-qr').style.display = tab === 'qr' ? 'flex' : 'none';
+  document.getElementById('panel-bar').style.display = tab === 'bar' ? 'flex' : 'none';
+  document.getElementById('tab-qr').className = 'tab-btn' + (tab === 'qr' ? ' active' : '');
+  document.getElementById('tab-bar').className = 'tab-btn' + (tab === 'bar' ? ' active' : '');
+  clearStatus();
+}
+
+function updateBarInfo() {
+  const fmt = document.getElementById('bar-format').value;
+  const infos = {
+    CODE39: 'Code 39: Huruf besar A–Z, angka 0–9, dan - . $ / + % SPACE',
+    CODE128: 'Code 128: Semua karakter ASCII 32–126. Mendukung teks apapun.',
+    EAN13: 'EAN-13: 12 atau 13 digit angka. Digit ke-13 adalah check digit.',
+    EAN8: 'EAN-8: 7 atau 8 digit angka. Digit ke-8 adalah check digit.',
+    UPCA: 'UPC-A: 11 atau 12 digit angka. Digunakan di produk ritel AS.',
+  };
+  document.getElementById('bar-info').textContent = infos[fmt];
+}
+
+function showOutput(show) {
+  document.getElementById('placeholder').style.display = show ? 'none' : 'flex';
+  document.getElementById('output-wrapper').style.display = show ? 'flex' : 'none';
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('status-bar');
+  el.textContent = msg;
+  el.className = 'status-bar ' + (type || '');
+  el.style.display = 'block';
+}
+
+function clearStatus() {
+  document.getElementById('status-bar').style.display = 'none';
+  document.getElementById('qr-error').className = 'error-msg';
+  document.getElementById('bar-error').className = 'error-msg';
+}
+
+function generateQR() {
+  clearStatus();
+  try {
+    const text = document.getElementById('qr-text').value;
+    const ecl = document.getElementById('qr-ecl').value;
+    const ms = parseInt(document.getElementById('qr-size').value);
+    const mg = parseInt(document.getElementById('qr-margin').value);
+    const fg = document.getElementById('qr-fg').value;
+    const bg = document.getElementById('qr-bg').value;
+
+    if (!text.trim()) throw new Error('Silakan masukkan data terlebih dahulu');
+
+    const result = QRGen.generate(text, ecl);
+    renderQR(result.matrix, result.size, { fgColor: fg, bgColor: bg, moduleSize: ms, margin: mg });
+    showOutput(true);
+    lastMode = 'qr';
+    setStatus(`QR v${result.version} • ECL:${ecl} • ${result.size}×${result.size} modul`, 'ok');
+  } catch(e) {
+    const el = document.getElementById('qr-error');
+    el.textContent = '⚠ ' + e.message;
+    el.className = 'error-msg show';
+    setStatus('Error: ' + e.message, 'err');
+  }
+}
+
+function generateBarcode() {
+  clearStatus();
+  try {
+    const text = document.getElementById('bar-text').value;
+    const fmt = document.getElementById('bar-format').value;
+    const height = parseInt(document.getElementById('bar-height').value);
+    const width = parseFloat(document.getElementById('bar-width').value);
+    const fg = document.getElementById('bar-fg').value;
+    const bg = document.getElementById('bar-bg').value;
+    const showText = document.getElementById('bar-showtext').value === '1';
+
+    if (!text.trim()) throw new Error('Silakan masukkan data terlebih dahulu');
+
+    let bars, label;
+    if (fmt === 'CODE39') {
+      bars = BarcodeGen.code39(text);
+      label = text.toUpperCase();
+    } else if (fmt === 'CODE128') {
+      bars = BarcodeGen.code128(text);
+      label = text;
+    } else if (fmt === 'EAN13') {
+      const res = BarcodeGen.ean13(text);
+      bars = res.bars; label = res.text;
+    } else if (fmt === 'EAN8') {
+      const res = BarcodeGen.ean8(text);
+      bars = res.bars; label = res.text;
+    } else if (fmt === 'UPCA') {
+      const res = BarcodeGen.upca(text);
+      bars = res.bars; label = res.text;
+    }
+
+    renderBarcode(bars, { fgColor: fg, bgColor: bg, barWidth: width, barHeight: height, showText }, showText ? label : null);
+    showOutput(true);
+    lastMode = 'bar';
+    setStatus(`${fmt} • ${bars.length} elemen bar`, 'ok');
+  } catch(e) {
+    const el = document.getElementById('bar-error');
+    el.textContent = '⚠ ' + e.message;
+    el.className = 'error-msg show';
+    setStatus('Error: ' + e.message, 'err');
+  }
+}
+
+function downloadPNG() {
+  const canvas = document.getElementById('main-canvas');
+  const a = document.createElement('a');
+  a.download = (lastMode === 'qr' ? 'qrcode' : 'barcode') + '.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+function downloadSVG() {
+  if (!lastSVGData) return;
+  const blob = new Blob([lastSVGData], {type: 'image/svg+xml'});
+  const a = document.createElement('a');
+  a.download = (lastMode === 'qr' ? 'qrcode' : 'barcode') + '.svg';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+async function copyToClipboard() {
+  const canvas = document.getElementById('main-canvas');
+  canvas.toBlob(async (blob) => {
+    try {
+      await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
+      setStatus('✓ Gambar disalin ke clipboard', 'ok');
+      setTimeout(() => clearStatus(), 2000);
+    } catch {
+      setStatus('Clipboard tidak tersedia - coba download', '');
+    }
+  });
+}
+
+// Init
+updateBarInfo();
+</script>
+</body>
+</html>
